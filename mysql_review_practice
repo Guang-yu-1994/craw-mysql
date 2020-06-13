@@ -1,0 +1,149 @@
+--删除数据表
+DROP TABLE purchase PURGE;
+DROP TABLE product  PURGE;
+DROP TABLE customer PURGE;
+--创建数据表
+CREATE TABLE product(
+                     productid   VARCHAR2(20),
+                     productname VARCHAR2(20) NOT NULL,
+                     unitprice   NUMBER ,
+                     category    VARCHAR2(20),
+                     provider    VARCHAR2(20),
+                     CONSTRAINT pk_productid PRIMARY KEY(productid),
+                     CONSTRAINT ck_unitprice CHECK(unitprice >0 )
+                      );
+CREATE TABLE customer(
+                     customerid      VARCHAR2(20),
+                     name            VARCHAR2(20) NOT NULL,
+                     location        VARCHAR2(20),
+                     CONSTRAINT pk_customerid PRIMARY KEY(customerid)
+                      );
+CREATE TABLE purchase(
+                     customerid      VARCHAR2(20),
+                     productid       VARCHAR2(20),
+                     quantity        NUMBER ,
+                     CONSTRAINT ck_quantity CHECK(quantity BETWEEN 0 AND 20 ),
+                     CONSTRAINT fk_productid FOREIGN KEY(productid) REFERENCES product(productid) ON DELETE CASCADE,
+                     CONSTRAINT fk_customerid FOREIGN KEY(customerid) REFERENCES customer(customerid) ON DELETE CASCADE   
+                      );
+
+--测试数据
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M01','佳洁士',8.00,'牙膏','保洁');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M02','高露洁',6.50,'牙膏','高露洁');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M03','洁诺',5.00,'牙膏','联合利华');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M04','舒肤佳',3.00,'香皂','保洁');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M05','夏士莲',5.00,'香皂','联合利华');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M06','雕牌',2.50,'洗衣粉','纳爱斯');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M07','中华',3.50,'牙膏','联合利华');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M08','汰渍',3.00,'洗衣粉','保洁');
+INSERT INTO product(productid,productname,unitprice,category,provider)
+VALUES('M09','碧浪',4.00,'洗衣粉','保洁');
+
+INSERT INTO customer(customerid,name,location)
+VALUES('C01','Dennis','海淀');
+INSERT INTO customer(customerid,name,location)
+VALUES('C02','John','朝阳');
+INSERT INTO customer(customerid,name,location)
+VALUES('C03','Tom','东城');
+INSERT INTO customer(customerid,name,location)
+VALUES('C04','Jenny','东城');
+INSERT INTO customer(customerid,name,location)
+VALUES('C05','Rick','西城');
+
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C01','M01',3);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C02','M05',2);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C01','M08',2);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C02','M02',5);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C02','M06',4);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C03','M01',1);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C03','M05',1);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C03','M06',3);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C03','M08',1);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C04','M03',7);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C04','M04',3);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C05','M06',2);
+INSERT INTO purchase(customerid,productid,quantity)
+VALUES('C05','M07',8);
+
+COMMIT;
+
+--查询购买了供应商“保洁”产品的所有顾客
+--确定使用的数据表 customer 顾客信息，product供应商信息，purchase购买记录
+--第一步：找到供应商“保洁”的所有商品编号SELECT productid FROM product WHERE provider = '保洁';
+--第二步：以上查询返回多行单列，在WHERE子句出现：SELECT customerid FROM purchase WHERE productid IN (SELECT productid FROM product WHERE provider = '保洁')
+--第三步：以上返回顾客编号，用WHERE过滤：
+SELECT *
+FROM customer
+WHERE customerid IN (
+                   SELECT customerid 
+                   FROM purchase 
+                   WHERE productid IN (
+                                      SELECT productid 
+                                      FROM product 
+                                      WHERE provider = '保洁')
+                     );
+
+--查询购买的商品包含了顾客“Dennis”所购买的所有商品的顾客（姓名）
+--确定所用数据表 customer 顾客信息，product供应商信息，purchase购买记录
+--第一步顾客编号：SELECT customerid FROM customer WHERE name = 'Dennis';
+--第二步购买商品编号：SELECT productid FROM purchase WHERE customerid = (SELECT customerid FROM customer WHERE name = 'Dennis');
+--第三步，借助集合操作，如果包含有C01的全部内容差的结果是null，用EXISTS.
+--即使用Dennis购买商品的记录减去其他用户编号的商品购买记录
+SELECT * 
+FROM customer cu
+WHERE NOT EXISTS(
+      SELECT p1.productid FROM purchase p1 WHERE customerid = (SELECT customerid FROM customer WHERE name = 'Dennis')
+      MINUS
+      SELECT p2.productid FROM purchase p2 WHERE customerid = cu.customerid)
+      AND cu.name != 'Dennis';
+
+
+--查询牙膏卖出数量的供应商
+--确定所用数据表 product供应商信息,product商品分类及出售数量,purchase销售记录
+--第一步，牙膏商品编号:SELECT productid FROM product WHERE category = '牙膏'
+--第二步，上述是返回多行单列,SELECT productid,SUM(quantity) FROM purchase WHERE productid IN (SELECT productid FROM product WHERE category = '牙膏')GROUP BY productid
+--第三步，最高商品销售数量，SELECT不能出现字段
+
+SELECT provider
+FROM product
+WHERE productid = (
+	SELECT productid
+	FROM purchase 
+	WHERE productid IN (
+                 SELECT productid FROM product WHERE category = '牙膏')
+	GROUP BY productid
+	HAVING SUM(quantity) = (
+   		 SELECT MAX(SUM(quantity))
+    		 FROM purchase
+   		 WHERE productid IN(
+       				 SELECT productid FROM product WHERE category = '牙膏')
+        			GROUP BY productid)
+              );
+
+--将所有牙膏单价增加10%
+UPDATE product SET unitprice = unitprice * 1.1 WHERE category = '牙膏';
+--删除未被购买的商品记录
+--第一步，找到所有被购买的商品 SELECT productid FROM purchase;
+--第二步，未购买商品记录
+DELETE FROM product WHERE productid NOT IN (SELECT productid FROM purchase);
+
