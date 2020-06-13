@@ -1,0 +1,566 @@
+-- 查看mysql状态
+service mysql status
+
+-- 创建表格
+CREATE TABLE city (
+  city_id        int(11) NOT NULL AUTO_INCREMENT,
+  city_name      varchar(50) NOT NULL,
+  country_id     int(11) NOT NULL,
+  PRIMARY KEY pk_cityid (city_id)
+ );
+ 
+CREATE TABLE country(
+  country_id int(11) NOT NULL AUTO_INCREMENT,
+  country_name varchar(50) NOT NULL UNIQUE,
+  PRIMARY KEY pk_countryid (country_id)
+ );
+  
+-- 插入数据
+INSERT INTO city(city_id, city_name, country_id) VALUES(1, '西安', 1);
+INSERT INTO city(city_id, city_name, country_id) VALUES(2, 'NewYork', 2);
+INSERT INTO city(city_id, city_name, country_id) VALUES(3, '北京', 1);
+INSERT INTO city(city_id, city_name, country_id) VALUES(4, '上海', 1);
+ 
+INSERT INTO country(country_id, country_name) VALUES(1, 'China');
+INSERT INTO country(country_id, country_name) VALUES(2, 'USA');
+INSERT INTO country(country_id, country_name) VALUES(3, 'Japan');
+INSERT INTO country(country_id, country_name) VALUES(4, 'UK');
+ 
+-- 创建索引
+CREATE INDEX inx_city_name on city(city_name);
+ 
+-- 查看索引
+SHOW INDEX from city;
+SHOW INDEX from city\G;
+ 
+-- 删除索引
+DROP INDEX inx_city_name on city;
+ 
+-- 添加唯一索引，即不允许重复，可有多个Null
+ALTER TABLE city ADD UNIQUE inx_city_name (city_name);
+ 
+-- 查询频次高，数据量大的表创建索引
+-- 经常在WHERE子句出现的字段建立索引
+-- 尽量建立唯一索引
+-- 索引不是多多益善
+-- 可以对N个字段创建组合索引
+ 
+ 
+-- 视图
+-- 创建视图
+CREATE VIEW view_city_country AS 
+  SELECT c.*, t.country_name 
+  FROM city c 
+  INNER JOIN country t 
+  WHERE c.country_id = t.country_id;
+  
+-- 查看视图
+SELECT * FROM view_city_country;
+  
+-- 更新视图， 基础表数据也更新
+UPDATE view_city_country set city_name='西安市' WHERE city_id=1;
+  
+-- 查看所有视图
+SHOW TABLES;
+  
+-- 查看创建视图语句
+SHOW CREATE VIEW view_city_country;
+  
+-- 删除视图
+DROP VIEW IF EXISTS view_city_country;
+  
+  
+  
+-- 数据存储过程
+-- 创建存储过程, 首先声明终止符
+  
+delimiter $
+  CREATE PROCEDURE pro_test1()
+  BEGIN 
+    SELECT 'hello mysql';
+  END$
+delimiter ;
+  
+-- 使用存储过程
+CALL pro_test1();
+  
+-- 查询存储过程
+-- 查询存储过程名称
+-- mysql8.0用不了SELECT name FROM mysql.proc WHERE db='testmysql';
+SHOW PROCEDURE status;\G
+SHOW CREATE PROCEDURE pro_test1;\G
+ 
+-- 删除存储过程
+DROP PROCEDURE pro_test1;
+
+-- 变量声明
+delimiter $
+CREATE PROCEDURE pro_test2()
+BEGIN
+DECLARE num INT DEFAULT 10;
+SELECT CONCAT('num的值是:', num);
+END $
+delimiter ;
+CALL pro_test2;
+
+-- 赋值
+delimiter $
+CREATE PROCEDURE pro_test3()
+BEGIN
+DECLARE num INT DEFAULT 10;
+SET num = num + 10;
+SELECT num;
+END$
+delimiter ;
+CALL pro_test3();
+
+-- 赋值
+delimiter $
+CREATE PROCEDURE pro_test4()
+BEGIN
+DECLARE num INT;
+SELECT COUNT(*) INTO num FROM city;
+SELECT CONCAT('city表中记录数为：', num);
+END$
+delimiter ;
+CALL pro_test4();
+
+-- IF条件判断
+delimiter $
+CREATE PROCEDURE pro_test5()
+BEGIN
+  DECLARE height INT DEFAULT 175;
+  DECLARE description VARCHAR(20) DEFAULT '';
+  IF height >= 180 
+    THEN SET description = '高';
+  ELSEIF height >=170 
+    THEN SET description = '中';
+  ELSE 
+    SET description = '低';
+  END IF;
+  SELECT CONCAT('身高', height, '对应的描述', description);
+END$
+delimiter ;
+
+CALL pro_test5();
+
+-- 传递参数
+delimiter $
+CREATE PROCEDURE pro_test6(IN height INT)
+BEGIN
+  DECLARE description VARCHAR(10) DEFAULT '';
+  IF height >= 180 
+    THEN SET description = '高';
+  ELSEIF height >= 170
+    THEN SET description = '中';
+  ELSE
+    SET description = '低';
+  END IF;
+  SELECT CONCAT('身高', height, '描述是', description);
+END$
+delimiter ;
+c
+
+-- 输出参数
+delimiter $
+CREATE PROCEDURE pro_test7(IN height INT, OUT description VARCHAR(10))
+BEGIN
+IF height >180 
+  THEN SET description='高';
+ELSEIF height > 170
+  THEN SET description='中';
+ELSE
+  SET description='低';
+END IF;
+SELECT CONCAT('身高', height, '属于', description);
+END$
+delimiter ;
+-- @ 用户变量,之后可以SELECT
+CALL pro_test7(140,@description);
+SELECT @description;
+
+-- CASE WHEN THEN 语句 
+delimiter $
+CREATE PROCEDURE pro_test8(IN mon INT)
+BEGIN
+  DECLARE result VARCHAR(10);
+  CASE
+    WHEN mon <= 3 
+	THEN SET result = '1季度';
+    WHEN mon <= 6 
+	THEN SET result = '2季度'; 
+    WHEN mon <= 9 
+	THEN SET result = '3季度';
+    ELSE 
+	SET result = '4季度';
+  END CASE;
+  SELECT CONCAT('',mon,result);
+END$
+delimiter ;
+CALL pro_test8(10);
+
+-- while, repeat, loop
+delimiter $
+CREATE PROCEDURE pro_test9(n INT)
+BEGIN
+DECLARE total INT DEFAULT 0;
+DECLARE num INT DEFAULT 1;
+  WHILE num<=n DO
+    SET total = total + num;
+    SET num = num + 1;
+  END WHILE;
+SELECT total;
+END$
+delimiter ;
+CALL pro_test9(5);
+
+delimiter $
+CREATE PROCEDURE pro_test10(IN n INT)
+BEGIN
+DECLARE total INT DEFAULT 0;
+REPEAT
+	SET total = total + n;
+	SET n = n - 1;
+	UNTIL n = 0
+END REPEAT;
+SELECT total;
+END$
+delimiter ;
+CALL pro_test10(5);
+
+delimiter $
+CREATE PROCEDURE pro_test11(IN n INT)
+BEGIN
+DECLARE total INT DEFAULT 0;
+c:LOOP 
+	SET total = total + n;
+ 	SET n = n - 1;
+	IF n <= 0 
+		THEN LEAVE c;
+	END IF;
+END LOOP c;
+SELECT total;
+END$
+delimiter ;
+CALL pro_test11(5);
+
+
+-- 游标 存储查询信息
+-- 先创建表
+CREATE TABLE emp(
+	id 		INT       	NOT NULL AUTO_INCREMENT,
+	name 		VARCHAR(10)	COMMENT '姓名',
+	age	        INT 	        COMMENT '年龄',
+	salary		  INT	        COMMENT '薪水',
+	PRIMARY KEY pk_id (id)
+)engine=innodb DEFAULT CHARSET=UTF8;
+
+INSERT INTO emp(id, name, age, salary) VALUES(NULL,'金毛狮王',55,3800),(NULL,'白毛鹰王',60,4000),(NULL,'青翼蝠王',38,2800),
+(NULL,'紫衫龙王',42,1800);
+
+DELIMITER $
+CREATE PROCEDURE pro_test12()
+BEGIN
+DECLARE e_id INT;
+DECLARE e_name VARCHAR(10);
+DECLARE e_age INT;
+DECLARE e_salary INT;
+DECLARE has_data INT DEFAULT 1;
+-- 封装emp表查询结果为游标
+DECLARE emp_result cursor FOR SELECT * FROM emp;
+-- 当fetch不到数据的时候将has_data设置为0, 必须放在创建游标语句的后面
+DECLARE EXIT handler FOR NOT FOUND SET has_data=0;
+-- 开启游标
+OPEN emp_result;
+REPEAT
+-- 抓取游标数据
+	FETCH emp_result INTO e_id, e_name, e_age, e_salary;
+-- 显示数据
+	SELECT CONCAT('ID=', e_id, '姓名=', e_name, '年龄=', e_age, '薪资=',e_salary);
+	UNTIL has_data=0
+END REPEAT;
+-- 关闭游标
+CLOSE emp_result;
+END$
+DELIMITER ;
+
+
+
+
+-- 存储函数
+set global log_bin_trust_function_creators=TRUE;
+DELIMITER $
+CREATE FUNCTION fun1(countryId INT) RETURNS INT
+BEGIN
+  DECLARE num INT;
+  SELECT COUNT(*) INTO num FROM city WHERE country_id=countryId;
+  RETURN num;
+END$
+DELIMITER ;
+
+SELECT fun1(1);
+
+-- 删除存储函数
+DROP FUNCTION fun1;
+
+
+
+
+-- 触发器 在增删改之后触发事件
+-- 创建触发器
+-- 创建日志表
+CREATE TABLE emp_log(
+	id INT PRIMARY KEY AUTO_INCREMENT ,
+	operate VARCHAR(10) NOT NULL COMMENT '操作类型',
+	operate_time DATETIME COMMENT '操作事件',
+	operate_id INT NOT NULL COMMENT '操作表的ID',
+	operate_params VARCHAR(500) COMMENT '操作参数'
+);
+
+-- 编写触发器
+DELIMITER $
+CREATE TRIGGER emp_insert_trigger AFTER INSERT ON emp
+FOR each row
+BEGIN
+  INSERT INTO emp_log(id, operate, operate_time, operate_id, operate_params) VALUES
+  (NULL, 'INSERT', NOW(), NEW.id, CONCAT('插入后id', NEW.id, 'name', NEW.name, 'age', NEW.age, 'salary', NEW.salary));
+END$
+DELIMITER ;
+
+INSERT INTO emp(id,name,age,salary) VALUES(NULL, '光明坐实', 30, 3500);
+
+DELIMITER $
+CREATE TRIGGER emp_update_trigger AFTER UPDATE ON emp
+FOR each row
+BEGIN
+  INSERT INTO emp_log(id, operate, operate_time, operate_id, operate_params) VALUES
+  (NULL, 'UPDATE', NOW(), NEW.id, 
+  CONCAT('修改前id',OLD.id,'name',OLD.name,'age',OLD.age,'salary',OLD.salary,
+         '修改后id', NEW.id, 'name', NEW.name, 'age', NEW.age, 'salary', NEW.salary));
+END$
+DELIMITER ;
+
+UPDATE emp SET age=44 WHERE id=1;
+
+-- 查看触发器
+SHOW TRIGGERS;\G
+
+
+
+-- 查看存储引擎
+SHOW VARIABLES LIKE '%storage_engine%';
+SHOW ENGINES;
+
+-- innodb是唯一支持外键的存储引擎
+-- 查看增删查改频率
+SHOW status LIKE 'Com_______';
+SHOW global status LIKE 'Com_______';
+SHOW global status LIKE 'Innodb_rows_%';
+
+
+
+-- 定位低效sql, 实时查询客户端执行的sql
+SHOW processlist;
+
+-- explain 分析执行计划
+EXPLAIN SELECT * FROM  selected_factor_name;
+
+-- 创建表格
+CREATE TABLE t_role(
+	id           VARCHAR(32) PRIMARY KEY,
+	role_name    VARCHAR(255) DEFAULT NULL UNIQUE KEY,
+	role_code    VARCHAR(255) DEFAULT NULL ,
+	description  VARCHAR(255) DEFAULT NULL 
+);
+
+CREATE TABLE t_user(
+	id  	VARCHAR(32) PRIMARY KEY,
+	username  VARCHAR(45) UNIQUE KEY,
+	password  VARCHAR(96),
+	name     VARCHAR(45)
+);
+
+CREATE TABLE user_role(
+	id          INT  PRIMARY KEY NOT NULL AUTO_INCREMENT,
+	user_id     VARCHAR(32) DEFAULT NULL,
+	role_id	    VARCHAR(32) DEFAULT NULL,
+	KEY fk_ur_user_id (user_id),
+	KEY fk_ur_role_id (role_id),
+	CONSTRAINT fk_ur_role_id FOREIGN KEY (role_id) REFERENCES t_role(id) ON DELETE NO ACTION ON UPDATE NO ACTION,
+	CONSTRAINT fk_ur_user_id FOREIGN KEY (user_id) REFERENCES t_user(id) ON DELETE NO ACTION ON UPDATE NO ACTION	
+);
+
+
+INSERT INTO t_user(id, username, password, name) 
+VALUES("1", "super", "super", "超级管理员");
+INSERT INTO t_user(id, username, password, name) 
+VALUES("2", "admin", "admin", "系统管理员");
+INSERT INTO t_user(id, username, password, name) 
+VALUES("3", "itcast", "itcast", "test02");
+INSERT INTO t_user(id, username, password, name) 
+VALUES("4", "stu1", "stu1", "学生1");
+INSERT INTO t_user(id, username, password, name) 
+VALUES("5", "stu2", "stu2", "学生2");
+INSERT INTO t_user(id, username, password, name) 
+VALUES("6", "t1", "t1", "老师1");
+
+
+INSERT INTO t_role(id, role_name, role_code, description) 
+VALUES("5", "学生", "student", "学生");
+INSERT INTO t_role(id, role_name, role_code, description) 
+VALUES("7", "老师", "teacher", "老师");
+INSERT INTO t_role(id, role_name, role_code, description) 
+VALUES("8", "教学管理员", "teachmanager", "教学管理员");
+INSERT INTO t_role(id, role_name, role_code, description) 
+VALUES("9", "管理员", "admin", "管理员");
+INSERT INTO t_role(id, role_name, role_code, description) 
+VALUES("10", "超级管理员", "super", "超级管理员");
+
+INSERT INTO user_role(id, user_id, role_id) VALUES(NULL, '1','5'),(NULL, '1','7'),(NULL, '2','8'),(NULL, '3','9'),
+(NULL, '4','8'),(NULL, '5','10');
+
+EXPLAIN SELECT * FROM t_user;
+
+
+
+
+-- show profile分析SQL
+-- 查看是否有并且开启
+SELECT @@have_profiling;
+SELECT @@profiling;
+
+-- 查看查询耗时
+SET profiling = 1;
+SHOW profiles;
+SHOW profile for query 1;
+-- 显示所有包含CPU占用情况
+
+
+-- trace分析优化器执行计划
+SET optimizer_trace = "enabled=on", end_markers_in_json=on;
+SET optimizer_trace_max_mem_size = 1000000;
+SELECT * FROM information_schema.optimizer_trace ; \G
+
+
+
+
+
+
+
+
+
+-- 索引的使用
+DESC selected_factor_name;
+-- 创建索引提高
+-- CREATE INDEX name_indx ON table(字段);
+
+-- 避免失效索引
+SHOW ALL profile for query1;
+
+
+
+
+-- 大批量插入
+CREATE TABLE tb_user_1(
+	id INT(11) NOT NULL AUTO_INCREMENT,
+	username VARCHAR(45) NOT NULL,
+	password VARCHAR(96) NOT NULL,
+	name VARCHAR(45) NOT NULL,
+	birthday DATETIME DEFAULT NULL,
+	sex CHAR(1) DEFAULT NULL,
+	email VARCHAR(45) DEFAULT NULL,
+	phone VARCHAR(45) DEFAULT NULL,
+	qq    VARCHAR(45) DEFAULT NULL,
+	status VARCHAR(32) NULL NULL COMMENT '用户状态',
+	create_time DATETIME NOT NULL,
+	update_time DATETIME DEFAULT NULL,
+	PRIMARY KEY (id),
+	UNIQUE KEY unique_user_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE tb_user_2(
+	id INT(11) NOT NULL AUTO_INCREMENT,
+	username VARCHAR(45) NOT NULL,
+	password VARCHAR(96) NOT NULL,
+	name VARCHAR(45) NOT NULL,
+	birthday DATETIME DEFAULT NULL,
+	sex CHAR(1) DEFAULT NULL,
+	email VARCHAR(45) DEFAULT NULL,
+	phone VARCHAR(45) DEFAULT NULL,
+	qq    VARCHAR(45) DEFAULT NULL,
+	status VARCHAR(32) NULL NULL COMMENT '用户状态',
+	create_time DATETIME NOT NULL,
+	update_time DATETIME DEFAULT NULL,
+	PRIMARY KEY (id),
+	UNIQUE KEY unique_user_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+
+-- SQL执行顺序
+-- FROM > ON > JOIN > WHERE > GROUP BY > HAVING > SELECT DISTINCT > ORDER BY > LIMIT
+-- 正则表达式
+SELECT * FROM student WHERE Sname regexp '^赵'; -- 以赵开头
+SELECT * FROM student WHERE Sname regexp '雷$'; -- 以雷结尾
+SELECT * FROM bili_ranks WHERE Uppers regexp '[a-zA-Z]'; -- 包含字母的
+
+
+
+-- SQL常用函数
+-- ABS, SQRT, MOD, ROUND, POW, SIN, ASIN, COS, ACOS, TAN, ATAN, COT, ACOT
+-- CEIL(向上取整), FLOOR(向下取整), RAND(生成0-1的随机数), SIGN(返回参数符号)
+
+-- LENGTH(计算字符串长度), CONCAT(合并字符串), INSERT(替换字符串), LOWER, IPPER, LEFT(从左取字符串), RIGHT, REPLACE
+-- TRIM(删除字符串左右两边的空格, SUBSTRING(从指定位置截取指定长度字符串), REVERSE
+SELECT SUBSTRING('JAVA HELLO', 1, 4);
+
+UPDATE 斗破苍穹 set Chapter_content = REPLACE(Chapter_content, '请记住本书首发域名：booktxt.net。顶点小说手机版阅读网址：m.booktxt.net','');
+UPDATE 斗破苍穹 set Chapter_content = REPLACE(Chapter_content, '_','');
+
+
+-- CURRENT_DATE(), CURRENT_TIME(), NOW(), SYSDATE()
+select now(), sleep(3), now();
+select current_timestamp, current_timestamp();
+select date_format('2008-08-08 22:23:01', '%Y%m%d%H%i%s');
+select str_to_date('08/09/2008', '%m/%d/%Y'); -- 2008-08-09
+select date_add(NOW(), interval 1 day); -- add 1 day
+select date_add(NOW(), interval 1 hour); -- add 1 hour
+select date_add(NOW(), interval 1 minute); -- ...
+select date_add(NOW(), interval 1 second);
+select date_add(NOW(), interval 1 microsecond);
+select date_add(NOW(), interval 1 week);
+select date_add(NOW(), interval 1 month);
+select date_add(NOW(), interval 1 quarter);
+select date_add(NOW(), interval 1 year);
+select datediff('2008-08-08', '2008-08-01'); -- 7
+
+
+-- 远程连接
+mysql -h127.0.0.1 -P3306 -uwmx - p
+
+-- 执行选项,不进入mysql
+mysql -uwmx -pMononofu1994 -e "SHOW DATABASES"; 
+
+mysqladmin --help 
+
+mysqladmin -uwmx -pMononofu1994 CREATE test01; -- 可以加h和P分别指定host和port, 创建数据库
+mysqladmin -uwmx -pMononofu1994 DROP 'test01';
+mysqladmin -uwmx -pMononofu1994  VERSION;
+
+
+-- mysqlbinlog
+mysqlbinlog
+
+
+
+
+
+	
+
+ 
+ 
+  
+  
+  
+  
