@@ -1,0 +1,67 @@
+# coding:UTF-8
+# import datetime, sqlalchemy  # pip install SQLAlchemy
+# import sqlalchemy.ext.declarative, sqlalchemy.orm, sqlalchemy.orm.session
+#
+# MYSQL_URL = "mysql+mysqlconnector://root:mysqladmin@localhost:3306/stocks"
+# class User(sqlalchemy.ext.declarative.declarative_base()):
+#     __tablename__ = "user"
+#     uid = sqlalchemy.Column(sqlalchemy.BIGINT, primary_key=True)
+#     name = sqlalchemy.Column(sqlalchemy.String)
+#     birthday = sqlalchemy.Column(sqlalchemy.Date)
+#     salary = sqlalchemy.Column(sqlalchemy.Float)
+#     note = sqlalchemy.Column(sqlalchemy.String)
+#
+#
+#
+# def main():
+#     engine = sqlalchemy.create_engine(MYSQL_URL, encoding="utf8", echo=True)
+#     sqlalchemy.orm.session.Session = sqlalchemy.orm.sessionmaker(bind=engine)  # get Session class
+#     session = sqlalchemy.orm.session.Session()
+#     bir_date = datetime.datetime.strptime("2016-11-30", "%Y-%m-%d")
+#     user = User(name="Peng", age=3, birthday=bir_date, salary=5900, note="www.yootk.com")
+#     session.add(user)
+#     session.commit()
+#     print("Saved data，Current ID：%s" % user.uid)
+#     session.close()
+import pandas as pd
+import pymysql
+import sqlalchemy
+from sqlalchemy import create_engine
+
+SQL = 'SELECT * FROM selected_factor_name;'
+class UseSQL:
+    def __init__(self):
+        pass
+
+    def connect_to(self):
+
+
+
+
+
+
+
+def readSQL():
+    conn = pymysql.connect(host='localhost', user='root', password='root', charset='UTF8MB4', database='testmysql', port=3306)
+    df = pd.read_sql(sql=SQL, con=conn,index_col='index')
+    print(df.head())
+    conn.close()
+
+def toSQL():
+    engine = create_engine('mysql+pymysql://root:root@localhost:3306/testmysql?charset=UTF8MB4')
+    df = pd.read_excel('./selected_factor_name.xlsx', skip_blank_lines=True, usecols='B:D')
+    print(df.head())
+    # df.to_sql('表名',con=engine,if_exists='replace/append/fail',index=False)
+    df.to_sql(name='selected_factor_name',
+              if_exists='replace',
+              index=True,
+              con=engine)
+
+
+
+
+
+if __name__ == "__main__":  #
+    # toSQL()
+    readSQL()
+
