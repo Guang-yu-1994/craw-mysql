@@ -1,0 +1,153 @@
+# import requests, re, pymysql
+# from fake_useragent import UserAgent
+# from bs4 import BeautifulSoup
+# import pandas as pd
+# from sqlalchemy import create_engine
+# from sqlalchemy.types import Integer, VARCHAR, FLOAT
+# # 对齐
+# # pd.set_option('display.unicode.ambiguous_as_wide', True)
+# # # pd.set_option('display.unicode.east_asian_width', True)
+#
+# def get_page():
+#     url = 'https://www.bilibili.com/ranking?spm_id_from=333.851.b_7072696d61727950616765546162.3'
+#     response = requests.get(url, headers={'User-Agent':UserAgent().random})
+#     response.encoding = 'utf-8'
+#     print(response.text)
+#     return response.text
+#
+# def stripWan(s):
+#     '''data type transforming function'''
+#     if '万' in s:
+#         s = eval(re.sub(r'万','',s)) * 10000
+#     else:
+#         s = eval(s)
+#     return s
+#
+# def parse_page(response):
+#     soup = BeautifulSoup(response, 'lxml')
+#     RANKINGS = []
+#     TITLES = []
+#     UPPERS = []
+#     PLAYS = []
+#     COINS = []
+#     TOTAL_SCORE = []
+#     contents = soup.find_all('li', attrs={'class':'rank-item'})
+#     for content in contents:
+#         rank = content.find('div', {'class':'num'}).string
+#         RANKINGS.append(rank)
+#         title = content.find('a',{'class':'title'}).string
+#         TITLES.append(title)
+#         uppers = content.find_all('a')[2].text
+#         UPPERS.append(uppers)
+#         plays = content.find('div',{'class':'detail'}).find('span').text
+#         PLAYS.append(plays)
+#         coins = content.find('div',{'class':'detail'}).find_all('span')[1].text
+#         COINS.append(coins)
+#         total_score = int(re.sub(r'\D','',content.find('div',{'class':'pts'}).text))
+#         TOTAL_SCORE.append(total_score)
+#
+#         # create dataframe to store the outcomes
+#     df = pd.DataFrame({'Rankings':RANKINGS,'Titles':TITLES,'Uppers':UPPERS, 'Plays':PLAYS, 'Coins':COINS, 'Total_score':TOTAL_SCORE})
+#     df.Plays = df.Plays.apply(stripWan)
+#     df.Coins = df.Coins.apply(stripWan)
+#     print(df)
+#     return df
+#
+# def store_data(df):
+#     engine = create_engine('mysql+pymysql://root:root@localhost:3306/testmysql?charset=UTF8MB4',
+#                            echo=True,  # echo=True 表示打印出自动生成的 SQL 语句（通过 logging）
+#                            pool_size=5,  # 连接池容量，默认为 5，生产环境下太小，需要修改。
+#                            pool_recycle=7200)  # 下面是 connection 回收的时间限制，默认 -1 不回收
+#
+#     dtype_dict = {'Rankings':Integer(),'Titles':VARCHAR(255),'Uppers':VARCHAR(20),'Plays':FLOAT(),'Coins':FLOAT(),'Total_score':Integer()}
+#
+#     df.to_sql(name='bili_ranks',
+#               if_exists='replace',
+#               con=engine,
+#               index=False, # 不把index作为单独的一列
+#               dtype=dtype_dict)
+#     with engine.connect() as con:
+#         con.execute(f"""ALTER TABLE bili_ranks ADD PRIMARY KEY (Rankings);""")
+#
+# def initiate():
+#     response = get_page()
+#     df = parse_page(response)
+#     store_data(df)
+#
+#
+# if __name__ == '__main__':
+#     initiate()
+
+
+
+
+import requests, re, pymysql
+from fake_useragent import UserAgent
+from lxml import etree
+import pandas as pd
+from sqlalchemy import create_engine
+from sqlalchemy.types import Integer, VARCHAR, FLOAT
+# 对齐
+# pd.set_option('display.unicode.ambiguous_as_wide', True)
+# # pd.set_option('display.unicode.east_asian_width', True)
+
+def get_page():
+    url = 'https://www.bilibili.com/ranking?spm_id_from=333.851.b_7072696d61727950616765546162.3'
+    response = requests.get(url, headers={'User-Agent':UserAgent().random})
+    response.encoding = 'utf-8'
+    print(response.text)
+    return response.text
+
+def stripWan(s):
+    '''data type transforming function'''
+    if '万' in s:
+        s = eval(re.sub(r'万','',s)) * 10000
+    else:
+        s = eval(s)
+    return s
+
+def parse_page(response):
+    e = etree.HTML(response)
+    RANKINGS = e.xpath('//li[@class="rank-item"]/div[@class="num"]/text()')
+    TITLES = e.xpath('//a[@class="title"]/text()')
+    UPPERS = e.xpath('//div[@class="detail"]/a/span/text()')
+    PLAYS = e.xpath('//div[@class="detail"]/span[1]/text()')
+    COINS = e.xpath('//div[@class="detail"]/span[2]/text()')
+    TOTAL_SCORE = e.xpath('//div[@class="pts"]/div/text()')
+
+
+    # create dataframe to store the outcomes
+    df = pd.DataFrame({'Rankings':RANKINGS,'Titles':TITLES,'Uppers':UPPERS, 'Plays':PLAYS, 'Coins':COINS, 'Total_score':TOTAL_SCORE})
+    df.Plays = df.Plays.apply(stripWan)
+    df.Coins = df.Coins.apply(stripWan)
+    print(df)
+    return df
+
+def store_data(df):
+    engine = create_engine('mysql+pymysql://root:root@localhost:3306/testmysql?charset=UTF8MB4' ,
+                           pool_size=5,  # 连接池容量，默认为 5，生产环境下太小，需要修改。
+                           pool_recycle=7200)  # 下面是 connection 回收的时ocalhost:3306/testmysql?charset=UTF8MB4',
+    echo=True,  # echo=True 表示打印出自动生成的 SQL间限制，默认 -1 不回收
+
+    dtype_dict = {'Rankings':Integer(),'Titles':VARCHAR(255),'Uppers':VARCHAR(20),'Plays':FLOAT(),'Coins':FLOAT(),'Total_score':Integer()}
+
+    df.to_sql(name='bili_ranks',
+              if_exists='replace',
+              con=engine,
+              index=False, # 不把index作为单独的一列
+              dtype=dtype_dict)
+    with engine.connect() as con:
+        con.execute(f"""ALTER TABLE bili_ranks ADD PRIMARY KEY (Rankings);""")
+
+def initiate():
+    response = get_page()
+    df = parse_page(response)
+    store_data(df)
+
+
+if __name__ == '__main__':
+    initiate()
+
+
+
+
