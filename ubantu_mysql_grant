@@ -1,0 +1,6 @@
+
+sudo mysql
+use mysql;
+select user, host, plugin from mysql.user;
+create user 'wmx'@'localhost' identified by 'Mononofu1994';
+grant all privileges on *.* to 'wmx'@'localhost';
