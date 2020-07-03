@@ -1,0 +1,47 @@
+ -- 获取系统当前时间
+ SELECT now();
+ SELECT now(3); -- 获取到3位毫秒数
+ SELECT sysdate();
+ 
+ -- now() 是执行开始时就得到 sysdate()是在函数执行时候动态得到的值
+ SELECT now(), sleep(3), now();
+ SELECT sysdate(), sleep(3), sysdate();
+ 
+ -- 获取当前年月日
+ SELECT curdate();
+ 
+ -- 获取当前时分秒
+ SELECT curtime();
+ 
+ -- 字符串转日期格式
+ -- %Y 4位年； %y 2位年； %M 英文名的月名； %m 数值月份； %D 带英文后缀的天； 
+ -- %d 数值天(1-31); %H 小时(00-23); %h 小时(01-12); %I 小时(01-12); %i 分钟，数值(00-59)
+ -- %S 秒； %s 秒; %a 英文缩写星期； %b 英文缩写月名； %j 当前日期是今年第几天(0-366)
+  SELECT str_to_date('08/09/2008','%m/%d/%y); -- 2020-08-09
+  SELECT str_to_date('08:09:30', '%h:%i:%s'); -- 08:09:30
+  SELECT str_to_date(now(),'%Y-%m-%d'); -- 2020-07-03
+  
+  -- 日期转换为字符串
+  SELECT date_format(now(), '%Y-%M-%d %H'); -- 2020-July-03 19
+  
+  -- 提取时间信息
+  -- date, time, year, month, day, hour, minute, second, quarter, week,
+  -- dayname 返回英文星期； monthname 返回英文月份, last_day 返回月份最后一天
+  SELECT date(now());
+  SELECT last_day(now());  -- 2020-07-31
+  
+  -- 日期偏移
+  -- date_sub(日期，要减少的偏移)  -- date_add(日期，要增加的偏移)
+  SELECT date_sub(now(), interval 1 day);
+  SELECT date_add(now(), interval '01:10:30' hour_second); -- 增加1小时10分30秒
+  
+  -- 计算日期时间差
+ SELECT DATEDIFF(now(), '2008-10-10');
+ SELECT TIMEDIFF(now(), '2008-10-10 1:1:1');  -- 838:59:59 
+ 
+ -- 两个日期得到指定差 timestampdiff(unit,begin,end) return end-begin
+ SELECT TIMESTAMPDIFF(year,now(),'2010-10-10'); -- 0 没有满一年的不算一年
+ 
+ 
+  
+  
