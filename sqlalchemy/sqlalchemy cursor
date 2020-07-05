@@ -1,0 +1,10 @@
+engine = create_engine('mysql+pymysql://root:root@localhost:3306/vbamysql?charset=UTF8MB4')
+conn = engine.raw_connection()
+cursor = conn.cursor()
+SQL = """SELECT MAX(price) FROM ProductInfo;"""
+cursor.execute(SQL)
+# ID, ProID, Type, ProName, Size, Price = cursor.fetchone()
+print(cursor.fetchone())
+# print(ID, ProID, Type, ProName, Size, Price)
+cursor.close()
+conn.close()
