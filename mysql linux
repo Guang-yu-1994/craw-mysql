@@ -1,0 +1,49 @@
+# 查找当前mysql安装包
+rpm -qa | grep -i mysql
+
+# 卸载之前安装的mysql
+rpm -e 加上（rpm -qa | grep -i mysql）的运行结果
+
+# 创建文件夹
+mkdir MYSQL
+
+# 解压mysql至指定文件夹mysql
+tar -xvf mysql-8.0.19-linux-glibc2.12-i686.tar.xz -C MYSQL/
+
+# 安装第三方依赖包
+yum -y install libaio.so.l libgcc_s.so.l libstdc++.so.6 libncurses.so.5 --setopt=protected_multilib=false
+
+# 更新
+yum update libstdc++-4.4.7-4.e16.x86_64
+
+# 安装mysql-client
+rpm -ivh MySQL-client-5.6.22-1.e16.i686.rpm
+
+# 熬不住mysql-server
+rpm-ivh MySQL-server-5.6.22-1.e16.i686.rpm
+
+
+# 查看默认密码 z1VwQICanZ5QjqOY
+sudo cat /etc/mysql/debian.cnf
+mysql -udebian-sys-maint -p
+update mysql.user SET authentication_string=PASSWORD('root'), PLUGIN='mysql_native_password' WHERE USER = 'root';
+
+
+# 卸载重装
+sudo rm /var/lib/mysql/ -R
+sudo rm /etc/mysql/ -R
+sudo apt-get autoremove mysql* --purge
+sudo apt-get remove apparmor
+
+
+
+sudo mysql
+use mysql;
+select user, host, plugin from mysql.user;
+create user 'wmx'@'localhost' identified by 'Mononofu1994';
+grant all privileges on *.* to 'wmx'@'localhost';
+update user set plugin='auth_socket' where User='wmx';
+sudo service mysql restart
+
+flush privileges;
+
